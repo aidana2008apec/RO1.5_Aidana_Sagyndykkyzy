@@ -1,128 +1,102 @@
-CREATE DATABASE IF NOT EXISTS cinema_management;
-USE cinema_management;
-
-CREATE TABLE movies (
-    movie_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE SCHEMA IF NOT EXISTS cinema;
+CREATE TABLE IF NOT EXISTS movies (
+    movie_id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
-    genre VARCHAR(100),
-    duration_minutes INT NOT NULL,
-    release_date DATE,
-    rating VARCHAR(10)
+    genre VARCHAR(100) NOT NULL,
+    duration_minutes INT NOT NULL CHECK (duration_minutes > 0),
+    release_date DATE NOT NULL CONSTRAINT check_release_date CHECK (release_date > '2026-01-01'),
+    rating VARCHAR(10) NOT NULL
 );
 
-CREATE TABLE theaters (
-    theater_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS theaters (
+    theater_id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    location VARCHAR(200),
-    phone VARCHAR(20)
+    location VARCHAR(200) NOT NULL,
+    phone VARCHAR(20) UNIQUE
 );
 
-CREATE TABLE halls (
-    hall_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS halls (
+    hall_id SERIAL PRIMARY KEY,
     theater_id INT NOT NULL,
     hall_name VARCHAR(50) NOT NULL,
-    capacity INT NOT NULL,
-    FOREIGN KEY (theater_id)
-        REFERENCES theaters(theater_id)
-        ON DELETE CASCADE
+    capacity INT NOT NULL CHECK (capacity > 0),
+    CONSTRAINT fk_theater FOREIGN KEY (theater_id) REFERENCES theaters(theater_id) ON DELETE CASCADE
 );
 
-CREATE TABLE seats (
-    seat_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS seats (
+    seat_id SERIAL PRIMARY KEY,
     hall_id INT NOT NULL,
-    row_no INT NOT NULL,
-    seat_number INT NOT NULL,
+    row_no INT NOT NULL CHECK (row_no > 0),
+    seat_number INT NOT NULL CHECK (seat_number > 0),
     UNIQUE (hall_id, row_no, seat_number),
-    FOREIGN KEY (hall_id)
-        REFERENCES halls(hall_id)
-        ON DELETE CASCADE
+    CONSTRAINT fk_hall FOREIGN KEY (hall_id) REFERENCES halls(hall_id) ON DELETE CASCADE
 );
 
-CREATE TABLE screenings (
-    screening_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS screenings (
+    screening_id SERIAL PRIMARY KEY,
     movie_id INT NOT NULL,
     hall_id INT NOT NULL,
-    start_time DATETIME NOT NULL,
-    price DECIMAL(8,2) NOT NULL,
-    FOREIGN KEY (movie_id)
-        REFERENCES movies(movie_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (hall_id)
-        REFERENCES halls(hall_id)
-        ON DELETE CASCADE
+    start_time TIMESTAMP NOT NULL,
+    price DECIMAL(8,2) NOT NULL CHECK (price >= 0),
+    CONSTRAINT fk_movie FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE CASCADE,
+    CONSTRAINT fk_hall_screening FOREIGN KEY (hall_id) REFERENCES halls(hall_id) ON DELETE CASCADE
 );
 
-CREATE TABLE customers (
-    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    email VARCHAR(150) UNIQUE,
-    phone VARCHAR(20)
+    email VARCHAR(150) UNIQUE NOT NULL,
+    gender CHAR(1) NOT NULL CHECK (gender IN ('M', 'F', 'O'))
 );
 
-CREATE TABLE tickets (
-    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS tickets (
+    ticket_id SERIAL PRIMARY KEY,
     screening_id INT NOT NULL,
     customer_id INT NOT NULL,
-    purchase_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'PURCHASED',
-    FOREIGN KEY (screening_id)
-        REFERENCES screenings(screening_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (customer_id)
-        REFERENCES customers(customer_id)
-        ON DELETE CASCADE
+    purchase_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'PURCHASED' CHECK (status IN ('PURCHASED', 'CANCELLED', 'REFUNDED')),
+    CONSTRAINT fk_screening FOREIGN KEY (screening_id) REFERENCES screenings(screening_id),
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
 
-CREATE TABLE ticket_seats (
+CREATE TABLE IF NOT EXISTS ticket_seats (
     ticket_id INT NOT NULL,
     seat_id INT NOT NULL,
     PRIMARY KEY (ticket_id, seat_id),
-    FOREIGN KEY (ticket_id)
-        REFERENCES tickets(ticket_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (seat_id)
-        REFERENCES seats(seat_id)
-        ON DELETE CASCADE
+    CONSTRAINT fk_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+    CONSTRAINT fk_seat FOREIGN KEY (seat_id) REFERENCES seats(seat_id) ON DELETE CASCADE
 );
 
-CREATE TABLE reservations (
-    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS reservations (
+    reservation_id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL,
     screening_id INT NOT NULL,
-    reservation_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id)
-        REFERENCES customers(customer_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (screening_id)
-        REFERENCES screenings(screening_id)
-        ON DELETE CASCADE
+    reservation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_res_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    CONSTRAINT fk_res_screening FOREIGN KEY (screening_id) REFERENCES screenings(screening_id)
 );
 
-CREATE TABLE roles (
-    role_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS roles (
+    role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(100) NOT NULL UNIQUE
 );
 
-CREATE TABLE employees (
-    employee_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS employees (
+    employee_id SERIAL PRIMARY KEY,
     theater_id INT NOT NULL,
     role_id INT NOT NULL,
     full_name VARCHAR(150) NOT NULL,
-    hire_date DATE DEFAULT (CURRENT_DATE),
-    FOREIGN KEY (theater_id)
-        REFERENCES theaters(theater_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (role_id)
-        REFERENCES roles(role_id)
+    hire_date DATE DEFAULT CURRENT_DATE,
+    CONSTRAINT fk_emp_theater FOREIGN KEY (theater_id) REFERENCES theaters(theater_id),
+    CONSTRAINT fk_emp_role FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
-CREATE TABLE salaries (
-    salary_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS salaries (
+    salary_id SERIAL PRIMARY KEY,
     employee_id INT NOT NULL,
-    base_salary DECIMAL(10,2) NOT NULL,
-    bonus DECIMAL(10,2) DEFAULT 0,
+    base_salary DECIMAL(10,2) NOT NULL CHECK (base_salary > 0),
+    bonus DECIMAL(10,2) DEFAULT 0 CHECK (bonus >= 0),
+    total_paid DECIMAL(10,2) GENERATED ALWAYS AS (base_salary + bonus) STORED,
     payment_date DATE NOT NULL,
-    FOREIGN KEY (employee_id)
-        REFERENCES employees(employee_id)
-        ON DELETE CASCADE
+    CONSTRAINT fk_salary_employee FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
 );
