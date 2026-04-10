@@ -100,3 +100,39 @@ CREATE TABLE IF NOT EXISTS salaries (
     payment_date DATE NOT NULL,
     CONSTRAINT fk_salary_employee FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
 );
+
+INSERT INTO roles (role_name) VALUES ('Менеджер'), ('Кассир'), ('Техник');
+
+INSERT INTO theaters (name, location, phone) VALUES 
+('Победа', 'Центральная ул., 1', '+79991234567'),
+('Звезда', 'Морской пр., 12', '+79997654321');
+
+INSERT INTO halls (theater_id, hall_name, capacity) VALUES 
+(1, 'Красный зал', 50),
+(1, 'VIP зал', 10),
+(2, 'Главный зал', 100);
+
+INSERT INTO seats (hall_id, row_no, seat_number) VALUES 
+(1, 1, 1), (1, 1, 2), (1, 1, 3), (1, 2, 1), (1, 2, 2);
+
+INSERT INTO movies (title, genre, duration_minutes, release_date, rating) VALUES 
+('Космическая Одиссея 2026', 'Sci-Fi', 140, '2026-05-10', '12+'),
+('Путь программиста', 'Drama', 110, '2026-02-20', '6+');
+
+INSERT INTO screenings (movie_id, hall_id, start_time, price) VALUES 
+(1, 1, '2026-05-12 18:00:00', 500.00),
+(2, 3, '2026-02-21 20:00:00', 400.00);
+
+INSERT INTO customers (name, email, gender) VALUES 
+('Иван Петров', 'ivan@mail.ru', 'M'),
+('Анна Сидорова', 'anna@gmail.com', 'F');
+
+INSERT INTO employees (theater_id, role_id, full_name, hire_date) VALUES 
+(1, 1, 'Сергеев Сергей', '2026-01-05');
+
+INSERT INTO salaries (employee_id, base_salary, bonus, payment_date) VALUES 
+(1, 60000.00, 5000.00, '2026-03-01');
+
+INSERT INTO tickets (screening_id, customer_id, status) VALUES (1, 1, 'PURCHASED');
+
+INSERT INTO ticket_seats (ticket_id, seat_id) VALUES (1, 1);
